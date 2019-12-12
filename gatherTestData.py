@@ -9,7 +9,7 @@ from imutils.video import VideoStream
 import time
 import numpy as np
 import matplotlib.pyplot as plt
-from tello_utils import polygon_area
+from tello_utils import polygon_area, get_x_measurement, get_z_measurement
 
 alpha_data = []
 
@@ -83,6 +83,7 @@ while True:
             poly_area = polygon_area(polygon)
             percent_screen = poly_area / frame_area
 
+
             polygon = polygon.reshape((-1,1,2))
 
             cv2.polylines(frame,[polygon],True,currentPolyColor,5)
@@ -138,7 +139,13 @@ while True:
             #     print(percent_screen)
 
             alpha_data.append(percent_screen)
-            print(percent_screen)
+            # print(percent_screen)
+            # Get x prime measurement
+            side_length = 2.15625
+            # x_prime, y = get_x_measurement(qrCX, frameWidth / 2, side_length, percent_screen)
+            z_prime, y   = get_z_measurement(qrCY,frameHeight/2, side_length, percent_screen)
+
+            print(z_prime, y)
 
 # # When everything done, release the capture
 

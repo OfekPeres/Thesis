@@ -10,7 +10,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from tello_utils import get_distance, polygon_area
+from tello_utils import get_y, polygon_area, get_x, get_z_measurement, get_z
 
 tello = Tello()
 
@@ -75,14 +75,20 @@ while True:
             currentSquareColor = colorFound
             currentCircleColor = colorFound
             currentPolyColor   = colorFound
-        cv2.circle(frame,(qrCX,qrCY), radius, currentCircleColor, -1)
+        cv2.circle(frame,(qrCX,qrCY), radius//2, currentCircleColor, -1)
+        cv2.circle(frame, (0, 0), radius // 2, currentCircleColor, -1)
         polygon   = np.array(aprilTag.polygon)
-        print("polygon points")
-        print(polygon)
+        # print("polygon points")
+        # print(polygon)
         poly_area = polygon_area(polygon)
         percent_screen = poly_area / frame_area
-        s = 2.15625
-        print(get_distance(s,percent_screen))
+        # s = 2.15625
+        s = 4.375
+        # print(get_distance(s,percent_screen))
+        x_distance = get_x(qrCX, frameWidth//2, s,percent_screen)
+        z_prime, y_z = get_z_measurement(qrCY,frameHeight/2,s,percent_screen)
+        z_distance = get_z(qrCY, frameHeight/2, s, percent_screen)
+        print(z_distance)
         polygon = polygon.reshape((-1,1,2))
 
         cv2.polylines(frame,[polygon],True,currentPolyColor,5)
