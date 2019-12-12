@@ -10,6 +10,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+from tello_utils import get_distance, polygon_area
 
 tello = Tello()
 
@@ -20,13 +21,13 @@ time.sleep(3)
 print(tello.get_battery())
 vs = tello.get_frame_read()
 counter = 0
-tello.takeoff()
+# tello.takeoff()
 time.sleep(3)
 while True:
     counter = counter + 1
     if counter%50 == 0:
         # tello.connect()
-        tello.send_command_without_return('rc 0 0 0 30')
+        tello.send_command_without_return('rc 0 0 0 0')
     frame = vs.frame
     frame = imutils.resize(frame, width=600)
     
@@ -44,6 +45,7 @@ while True:
          break
 
     frameHeight,frameWidth = frame.shape[:2]
+    frame_area = frameHeight * frameWidth
     for aprilTag in aprilTags:
         # Find box that surrounds the location of the barcode
         # draw a rectangle around it
@@ -75,11 +77,17 @@ while True:
             currentPolyColor   = colorFound
         cv2.circle(frame,(qrCX,qrCY), radius, currentCircleColor, -1)
         polygon   = np.array(aprilTag.polygon)
+        print("polygon points")
+        print(polygon)
+        poly_area = polygon_area(polygon)
+        percent_screen = poly_area / frame_area
+        s = 2.15625
+        print(get_distance(s,percent_screen))
         polygon = polygon.reshape((-1,1,2))
 
         cv2.polylines(frame,[polygon],True,currentPolyColor,5)
 
-        cv2.rectangle(frame, (x, y), (x + w, y + h), currentSquareColor, 3)
+        # cv2.rectangle(frame, (x, y), (x + w, y + h), currentSquareColor, 3)
 
         centerQR = (qrCX,qrCY)
 
@@ -151,9 +159,9 @@ cv2.destroyAllWindows()
 
 # # When everything done, release the capture
 # cap.release()
-tello.send_command_without_return('rc 0 0 0 0')
+# tello.send_command_without_return('rc 0 0 0 0')
 time.sleep(3)
-tello.land()
+# tello.land()
 vs.stop()
 tello.streamoff()
 tello.end()

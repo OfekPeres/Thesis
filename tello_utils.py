@@ -14,6 +14,17 @@ def polygon_area(coords):
 
     return abs(area)
 
+def get_distance(s, alpha):
+    b = -.5135
+    k = 1.0721
+    a = s*k
+    dist = a*alpha**b
+    return dist
+
+
+
+
+
 # p1 = np.array([4, 10])
 # p2 = np.array([9, 7])
 # p3 = np.array([11, 2])
