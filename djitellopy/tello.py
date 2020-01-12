@@ -208,8 +208,8 @@ class Tello:
 
         return response
 
-    @accepts(command=str)
-    def send_command_without_return(self, command):
+    @accepts(command=str,printInfo=bool)
+    def send_command_without_return(self, command,printinfo=True):
         """Send command to Tello without expecting a response. Use this method when you want to send a command
         continuously
             - go x y z speed: Tello fly to x y z in speed (cm/s)
@@ -231,8 +231,8 @@ class Tello:
                 d: yaw (-100~100)
         """
         # Commands very consecutive makes the drone not respond to them. So wait at least self.TIME_BTW_COMMANDS seconds
-
-        self.LOGGER.info('Send command (no expect response): ' + command)
+        if printinfo:
+            self.LOGGER.info('Send command (no expect response): ' + command)
         self.clientSocket.sendto(command.encode('utf-8'), self.address)
 
     @accepts(command=str, timeout=int)
