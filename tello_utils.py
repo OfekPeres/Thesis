@@ -94,7 +94,7 @@ def draw_april_tag_bounding_box(frame, aprilTag, centered, close_enough):
     percent_screen = poly_area/frame_area
 
     # Get side length of QR Code based on the data inside of it
-    QR_Code_Map = {1:2.1256, 2:4.325, 19:5.0625}
+    QR_Code_Map = {1:2.1256, 2:4.325, 18:7.03125, 19:5.0625}
     aprilTagData = int(aprilTag.data.decode("utf-8"))
     side_length = QR_Code_Map[aprilTagData]
 
@@ -104,7 +104,7 @@ def draw_april_tag_bounding_box(frame, aprilTag, centered, close_enough):
 
     x_dist = get_x(qrCX, frameWidth//2, side_length, percent_screen)
     z_dist = get_z(qrCY, frameHeight//2, side_length, percent_screen)
-    print("Current x distance: {}, Current y distance: {}, Current z distance {}".format(x_dist, y_dist, z_dist))
+    print("Current x distance: {:.2f}, Current y distance: {:.2f}, Current z distance {:.2f}".format(x_dist, y_dist, z_dist))
 
 
     if centered and close_enough:
@@ -133,7 +133,7 @@ def get_control_inputs(frame, aprilTag):
     percent_screen = poly_area/frame_area
 
     # Get side length of QR Code based on the data inside of it
-    QR_Code_Map = {1:2.1256, 2:4.325, 19:5.0625}
+    QR_Code_Map = {1:2.1256, 2:4.325, 18:7.03125, 19:5.0625}
     aprilTagData = int(aprilTag.data.decode("utf-8"))
     side_length = QR_Code_Map[aprilTagData]
 
@@ -201,7 +201,7 @@ def get_pid_control_inputs(frame, aprilTag):
     poly_area = polygon_area(np.array(aprilTag.polygon))
     percent_screen = poly_area/frame_area
     # Get side length of QR Code based on the data inside of it
-    QR_Code_Map = {1:2.1256, 2:4.325, 19:5.0625}
+    QR_Code_Map = {1:2.1256, 2:4.325, 18:7.03125, 19:5.0625}
     aprilTagData = int(aprilTag.data.decode("utf-8"))
     side_length = QR_Code_Map[aprilTagData]
 

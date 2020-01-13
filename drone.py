@@ -19,6 +19,9 @@ key_dict = {"Key.media_volume_up":"a", "Key.media_volume_down":'s','Key.media_ne
 
 SPEED = 50
 FPS = 15
+HAS_NOT_SEEN_QR_CODE = 0
+TRACKING_QR_CODE = 1
+LOST_QR_CODE = 2
 class Drone:
 
     def __init__(self):  
@@ -29,6 +32,7 @@ class Drone:
         self.speed = 10
         self.rc_mode = True
         self.drone_state = 'landed'
+        self.stage = HAS_NOT_SEEN_QR_CODE
         self.program_active = True
         self.tello = Tello()
         self.centered = False
@@ -83,13 +87,26 @@ class Drone:
 
             # Find QR Codes in Image
             aprilTags = pyzbar.decode(frame)
-
-            for aprilTag in aprilTags:
-                draw_april_tag_bounding_box(frame, aprilTag, self.centered, self.closeEnough)
-                if not self.rc_mode:
-                    self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, = get_pid_control_inputs(frame,aprilTag)
-                    # self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, self.centered, self.closeEnough = get_control_inputs(frame,aprilTag)
+            # print("AprilTags is: {}".format(aprilTags))
+            # print("Length of AprilTags is: {}".format(len(aprilTags)))
             
+            # print("Current stage is: {}".format(self.stage))
+            # for aprilTag in aprilTags:
+            #     draw_april_tag_bounding_box(frame, aprilTag, self.centered, self.closeEnough)
+            #     if not self.rc_mode:
+            #         # self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, = get_pid_control_inputs(frame,aprilTag)
+            #         self.controller(frame, aprilTag)
+            #         # self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, self.centered, self.closeEnough = get_control_inputs(frame,aprilTag)
+            
+            if len(aprilTags) >= 1:
+                aprilTag = aprilTags[0]
+            else:
+                aprilTag = None
+            if aprilTag is not None:
+                draw_april_tag_bounding_box(frame, aprilTag, self.centered, self.closeEnough)
+            if not self.rc_mode:
+                self.stageUpdate(len(aprilTags))
+                self.controller(frame, aprilTag)
 
             # Prepare image for display in Pygame
             self.screen.fill([0,0,0])
@@ -143,6 +160,16 @@ class Drone:
             self.yaw_velocity = 0
             print(self.rc_mode)
             print("Hovering")
+        elif key == pygame.K_r:
+            self.stage = HAS_NOT_SEEN_QR_CODE
+            self.rc_mode = True
+            self.forward_back_velocity = 0
+            self.left_right_velocity = 0
+            self.up_down_velocity = 0
+            self.yaw_velocity = 0
+            print(self.rc_mode)
+            print("Hovering")
+
 
 
     def keyup(self, key):
@@ -175,9 +202,41 @@ class Drone:
         # self.tello.send_rc_control(self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity,
         #                            self.yaw_velocity)
         
+    def controller(self, frame, aprilTag):
+        if self.stage == HAS_NOT_SEEN_QR_CODE:
+            self.rotate()
+        if self.stage == TRACKING_QR_CODE and aprilTag is not None:
+            self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, = get_pid_control_inputs(frame,aprilTag)
+        if self.stage == LOST_QR_CODE:
+            self.backup()
 
 
-                
+    def stageUpdate(self, numQRCodes):
+        # print("Number of QR Codes is: {}".format(numQRCodes))
+        # print("Stage in stageUpdate is: {}".format(self.stage))
+        if self.stage == HAS_NOT_SEEN_QR_CODE and numQRCodes >= 1:
+            self.stage = TRACKING_QR_CODE
+
+        elif self.stage == TRACKING_QR_CODE and numQRCodes == 0:
+            self.stage = 2
+
+        elif self.stage == LOST_QR_CODE and numQRCodes >= 1:
+            self.stage = TRACKING_QR_CODE
+
+    def rotate(self):
+        print("Rotating")
+        self.left_right_velocity = 0
+        self.forward_back_velocity = 0
+        self.up_down_velocity = 0
+        self.yaw_velocity = 20
+
+
+    def backup(self):
+        print("Backing up")
+        self.left_right_velocity = 0
+        self.forward_back_velocity = -15
+        self.up_down_velocity = 0
+        self.yaw_velocity = 0
 
         
 
