@@ -201,14 +201,15 @@ def get_pid_control_inputs(frame, aprilTag):
     poly_area = polygon_area(np.array(aprilTag.polygon))
     percent_screen = poly_area/frame_area
     # Get side length of QR Code based on the data inside of it
-    QR_Code_Map = {1:2.1256, 2:4.325, 18:7.03125, 19:5.0625}
+    # QR_Code_Map = {1:2.1256, 2:4.325, 18:7.03125, 19:5.0625} #Original QR Code
+    QR_Code_Map = {1:4.375, 2:4.325, 18:6.875, 19:5.0625} # QR Code with Centaur Font at top
     aprilTagData = int(aprilTag.data.decode("utf-8"))
     side_length = QR_Code_Map[aprilTagData]
 
     # Get Distances and figure out control inputs
     y_dist = get_y(side_length, percent_screen)
     # print("Current y distance: {}".format(y_dist))
-    y_des = 5 #inches
+    y_des = 10 #inches
     x_des_pxl = frameCX #pixels
     z_des_pxl = frameCZ #pixels
     yaw_des_dh = 0 #deltaH pixels
@@ -226,10 +227,15 @@ def get_pid_control_inputs(frame, aprilTag):
     r = np.array([x_des_pxl, y_des, z_des_pxl, yaw_des_dh])
     state = np.array([qrCX, y_dist, qrCZ, height_diff])
     e = r - state
+    print("Error is: x: {}, y:{}, z:{}, yaw: {}".format(e[0],e[1],e[2],e[3]))
+    # Original Gains
+    # kp_x_pxl = -0.06
+    # kp_y     = -0.4
+    # kp_z_pxl = 0.17
 
-    kp_x_pxl = -0.06
-    kp_y     = -0.4
-    kp_z_pxl = 0.17
+    kp_x_pxl = -0.091
+    kp_y     = -0.49
+    kp_z_pxl = 0.24
     Kp = np.diag([kp_x_pxl, kp_y, kp_z_pxl, kp_yaw])
 
     k_yaw = 0.6
@@ -245,7 +251,11 @@ def get_pid_control_inputs(frame, aprilTag):
 
     u = Kp@e
     print(u)
-    return int(u[0]), int(u[1]), int(u[2]), int(u[3])
+
+    land = False
+    if abs(e[0]) <= 37 and abs(e[1]) <= 17 and abs(e[2]) <= 37 and abs(e[3]) <= 15:
+        land = True
+    return int(u[0]), int(u[1]), int(u[2]), int(u[3]), land
 
 
 

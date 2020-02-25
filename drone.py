@@ -22,6 +22,8 @@ FPS = 15
 HAS_NOT_SEEN_QR_CODE = 0
 TRACKING_QR_CODE = 1
 LOST_QR_CODE = 2
+Found_and_Centered_on_QR_Code = 3
+landed = 4
 class Drone:
 
     def __init__(self):  
@@ -37,6 +39,7 @@ class Drone:
         self.tello = Tello()
         self.centered = False
         self.closeEnough = False
+        self.land = False
 
         # Setup pygame window
         pygame.init()
@@ -206,9 +209,21 @@ class Drone:
         if self.stage == HAS_NOT_SEEN_QR_CODE:
             self.rotate()
         if self.stage == TRACKING_QR_CODE and aprilTag is not None:
-            self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, = get_pid_control_inputs(frame,aprilTag)
+            self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, self.land = get_pid_control_inputs(frame,aprilTag)
         if self.stage == LOST_QR_CODE:
             self.backup()
+        if self.stage == Found_and_Centered_on_QR_Code:
+            command = "rc {} {} {} {}".format(0, 0, 0, 0)
+            printInfo = False
+            self.tello.send_command_without_return(command, printInfo)
+            self.tello.land()
+            self.stage = landed
+        if self.stage == landed:
+            command = "rc {} {} {} {}".format(0, 0, 0, 0)
+            printInfo = False
+            self.tello.send_command_without_return(command, printInfo)
+            
+
 
 
     def stageUpdate(self, numQRCodes):
@@ -218,10 +233,15 @@ class Drone:
             self.stage = TRACKING_QR_CODE
 
         elif self.stage == TRACKING_QR_CODE and numQRCodes == 0:
-            self.stage = 2
+            self.stage = LOST_QR_CODE
 
         elif self.stage == LOST_QR_CODE and numQRCodes >= 1:
             self.stage = TRACKING_QR_CODE
+        elif self.stage == TRACKING_QR_CODE and self.land == True:
+            self.stage = Found_and_Centered_on_QR_Code
+            
+            
+
 
     def rotate(self):
         print("Rotating")
