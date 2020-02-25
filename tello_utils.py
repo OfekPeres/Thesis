@@ -189,7 +189,7 @@ def get_control_inputs(frame, aprilTag):
     return x_vel,y_vel,z_vel,0, centered, closeEnough
     
 
-def get_pid_control_inputs(frame, aprilTag):
+def get_pid_control_inputs(frame, aprilTag, e_integral):
     frameHeight,frameWidth = frame.shape[:2]
     frame_area = frameHeight * frameWidth
     (x,y,w,h) = aprilTag.rect
@@ -209,7 +209,7 @@ def get_pid_control_inputs(frame, aprilTag):
     # Get Distances and figure out control inputs
     y_dist = get_y(side_length, percent_screen)
     # print("Current y distance: {}".format(y_dist))
-    y_des = 10 #inches
+    y_des = 14 #inches
     x_des_pxl = frameCX #pixels
     z_des_pxl = frameCZ #pixels
     yaw_des_dh = 0 #deltaH pixels
@@ -227,14 +227,16 @@ def get_pid_control_inputs(frame, aprilTag):
     r = np.array([x_des_pxl, y_des, z_des_pxl, yaw_des_dh])
     state = np.array([qrCX, y_dist, qrCZ, height_diff])
     e = r - state
-    print("Error is: x: {}, y:{}, z:{}, yaw: {}".format(e[0],e[1],e[2],e[3]))
+    if e[1] > -1.5*y_des:
+        e_integral = e_integral + e
+    print("Error is: x: {:.2f}, y:{:.2f}, z:{:.2f}, yaw: {:.2f}".format(e[0],e[1],e[2],e[3]))
     # Original Gains
     # kp_x_pxl = -0.06
     # kp_y     = -0.4
     # kp_z_pxl = 0.17
 
     kp_x_pxl = -0.091
-    kp_y     = -0.49
+    kp_y     = -0.6
     kp_z_pxl = 0.24
     Kp = np.diag([kp_x_pxl, kp_y, kp_z_pxl, kp_yaw])
 
@@ -245,17 +247,27 @@ def get_pid_control_inputs(frame, aprilTag):
     Kp[0][3] = -R*k_yaw*deg2rad
 
     kd_x_pxl = 0
-    kd_y = 0
+    kd_y     = 0
     kd_z_pxl = 0
-    Kd = np.diag([kd_x_pxl, kd_y, kd_z_pxl])
+    kd_yaw   = 0
+    Kd = np.diag([kd_x_pxl, kd_y, kd_z_pxl, kd_yaw])
 
-    u = Kp@e
-    print(u)
+    ki_x_pxl = 0
+    ki_y     = -0.01
+    ki_z_pxl = 0
+    ki_yaw   = 0
+    Ki = np.diag([ki_x_pxl, ki_y, ki_z_pxl, ki_yaw])
+
+    u = Kp@e + Ki@e_integral
+    print("Integral Inputs are: x: {:.2f}, y:{:.2f}, z:{:.2f}, yaw: {:.2f}".format(e_integral[0],e_integral[1],e_integral[2],e_integral[3]))
+    print("Control Inputs are: x: {:.2f}, y:{:.2f}, z:{:.2f}, yaw: {:.2f}".format(u[0],u[1],u[2],u[3]))
 
     land = False
-    if abs(e[0]) <= 37 and abs(e[1]) <= 17 and abs(e[2]) <= 37 and abs(e[3]) <= 15:
+    if abs(e[0]) <= 37 and abs(e[1]) <= 1 and abs(e[2]) <= 37 and abs(e[3]) <= 15:
         land = True
-    return int(u[0]), int(u[1]), int(u[2]), int(u[3]), land
+        # print("\n\n\n\n\nI should Land\n\n\n\n\n")
+        # land = False
+    return int(u[0]), int(u[1]), int(u[2]), int(u[3]), e_integral, land
 
 
 

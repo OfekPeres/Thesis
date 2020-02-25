@@ -40,6 +40,7 @@ class Drone:
         self.centered = False
         self.closeEnough = False
         self.land = False
+        self.e_integral = np.array([0,0,0,0])
 
         # Setup pygame window
         pygame.init()
@@ -170,6 +171,7 @@ class Drone:
             self.left_right_velocity = 0
             self.up_down_velocity = 0
             self.yaw_velocity = 0
+            self.e_integral = np.array([0,0,0,0])
             print(self.rc_mode)
             print("Hovering")
 
@@ -209,7 +211,7 @@ class Drone:
         if self.stage == HAS_NOT_SEEN_QR_CODE:
             self.rotate()
         if self.stage == TRACKING_QR_CODE and aprilTag is not None:
-            self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, self.land = get_pid_control_inputs(frame,aprilTag)
+            self.left_right_velocity, self.forward_back_velocity, self.up_down_velocity, self.yaw_velocity, self.e_integral, self.land = get_pid_control_inputs(frame,aprilTag, self.e_integral)
         if self.stage == LOST_QR_CODE:
             self.backup()
         if self.stage == Found_and_Centered_on_QR_Code:
