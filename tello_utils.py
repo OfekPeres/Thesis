@@ -94,7 +94,8 @@ def draw_april_tag_bounding_box(frame, aprilTag, centered, close_enough):
     percent_screen = poly_area/frame_area
 
     # Get side length of QR Code based on the data inside of it
-    QR_Code_Map = {1:2.1256, 2:4.325, 18:7.03125, 19:5.0625}
+    # QR_Code_Map = {1:2.1256, 2:4.325, 18:7.03125, 19:5.0625}
+    QR_Code_Map = {1:7.5, 2:7.5, 3:7.5, 4:7.5, 18:7.03125, 19:5.0625}
     aprilTagData = int(aprilTag.data.decode("utf-8"))
     side_length = QR_Code_Map[aprilTagData]
 
@@ -189,7 +190,7 @@ def get_control_inputs(frame, aprilTag):
     return x_vel,y_vel,z_vel,0, centered, closeEnough
     
 
-def get_pid_control_inputs(frame, aprilTag, e_integral):
+def get_pid_control_inputs(frame, aprilTag, e_integral, e_prev):
     frameHeight,frameWidth = frame.shape[:2]
     frame_area = frameHeight * frameWidth
     (x,y,w,h) = aprilTag.rect
@@ -202,7 +203,10 @@ def get_pid_control_inputs(frame, aprilTag, e_integral):
     percent_screen = poly_area/frame_area
     # Get side length of QR Code based on the data inside of it
     # QR_Code_Map = {1:2.1256, 2:4.325, 18:7.03125, 19:5.0625} #Original QR Code
-    QR_Code_Map = {1:4.375, 2:4.325, 18:6.875, 19:5.0625} # QR Code with Centaur Font at top
+    # QR_Code_Map = {1:4.375, 2:4.325, 18:6.875, 19:5.0625} # QR Code with Centaur Font at top
+
+    # QR Code Box 3-13-2020
+    QR_Code_Map = {1:7.5, 2:7.5, 3:7.5, 4:7.5, 18:7.03125, 19:5.0625}
     aprilTagData = int(aprilTag.data.decode("utf-8"))
     side_length = QR_Code_Map[aprilTagData]
 
@@ -227,6 +231,7 @@ def get_pid_control_inputs(frame, aprilTag, e_integral):
     r = np.array([x_des_pxl, y_des, z_des_pxl, yaw_des_dh])
     state = np.array([qrCX, y_dist, qrCZ, height_diff])
     e = r - state
+    e_derivative = e - e_prev
     if e[1] > -1.5*y_des:
         e_integral = e_integral + e
     print("Error is: x: {:.2f}, y:{:.2f}, z:{:.2f}, yaw: {:.2f}".format(e[0],e[1],e[2],e[3]))
@@ -236,8 +241,8 @@ def get_pid_control_inputs(frame, aprilTag, e_integral):
     # kp_z_pxl = 0.17
 
     kp_x_pxl = -0.091
-    kp_y     = -0.6
-    kp_z_pxl = 0.24
+    kp_y     = -0.55
+    kp_z_pxl = 0.27
     Kp = np.diag([kp_x_pxl, kp_y, kp_z_pxl, kp_yaw])
 
     k_yaw = 0.6
@@ -247,7 +252,7 @@ def get_pid_control_inputs(frame, aprilTag, e_integral):
     Kp[0][3] = -R*k_yaw*deg2rad
 
     kd_x_pxl = 0
-    kd_y     = 0
+    kd_y     = -0.2
     kd_z_pxl = 0
     kd_yaw   = 0
     Kd = np.diag([kd_x_pxl, kd_y, kd_z_pxl, kd_yaw])
@@ -258,16 +263,22 @@ def get_pid_control_inputs(frame, aprilTag, e_integral):
     ki_yaw   = 0
     Ki = np.diag([ki_x_pxl, ki_y, ki_z_pxl, ki_yaw])
 
-    u = Kp@e + Ki@e_integral
-    print("Integral Inputs are: x: {:.2f}, y:{:.2f}, z:{:.2f}, yaw: {:.2f}".format(e_integral[0],e_integral[1],e_integral[2],e_integral[3]))
+    u = Kp@e + Ki@e_integral + Kd@e_derivative
+    print("Derivative Inputs are: x: {:.2f}, y:{:.2f}, z:{:.2f}, yaw: {:.2f}".format(e_derivative[0],e_derivative[1],e_derivative[2],e_derivative[3]))
+    print("Integral Inputs are: x: {:.2f}, y:{:.2f}, z:{:.2f}, yaw: {:.2f}".format(e_integral[0],e_integral[1],e_integral[2],e_integral[3]))   
     print("Control Inputs are: x: {:.2f}, y:{:.2f}, z:{:.2f}, yaw: {:.2f}".format(u[0],u[1],u[2],u[3]))
+    print("\n")
 
     land = False
-    if abs(e[0]) <= 37 and abs(e[1]) <= 1 and abs(e[2]) <= 37 and abs(e[3]) <= 15:
+    x_threshold = 100       # pixels
+    y_threshold = 1.5        # inches
+    z_threshold = 100       # pixels
+    yaw_threshold = 15     # 
+    if abs(e[0]) <= x_threshold and abs(e[1]) <= y_threshold and abs(e[2]) <= z_threshold and abs(e[3]) <= yaw_threshold:
         land = True
         # print("\n\n\n\n\nI should Land\n\n\n\n\n")
         # land = False
-    return int(u[0]), int(u[1]), int(u[2]), int(u[3]), e_integral, land
+    return int(u[0]), int(u[1]), int(u[2]), int(u[3]), e_integral, e, land
 
 
 
